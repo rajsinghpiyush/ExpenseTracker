@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: splitsmart-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        value: ""
+      - key: DIRECT_URL
+        value: ""
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: ""
+      - key: NODE_ENV
+        value: production
