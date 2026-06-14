@@ -11,6 +11,7 @@ import Balances from './pages/Balances';
 import ImportFlow from './pages/ImportFlow';
 import ImportReport from './pages/ImportReport';
 import SettlementForm from './pages/SettlementForm';
+import Landing from './pages/Landing';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -25,7 +26,7 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Landing />} />
 
       {/* Public */}
       <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />

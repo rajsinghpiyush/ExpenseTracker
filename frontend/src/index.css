@@ -963,3 +963,477 @@ tbody tr:hover { background: var(--bg-hover); }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   h1 { font-size: 1.5rem; }
 }
+
+/* ── Landing Page Styles ────────────────────────────────────────── */
+.landing-page {
+  min-height: 100vh;
+  background-color: #fafaf9; /* soft warm cream light bg */
+  color: #1c1917; /* warm dark charcoal */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.landing-header {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(28,25,23,0.06);
+}
+
+.landing-logo {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+}
+
+.landing-nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.landing-nav a {
+  text-decoration: none;
+  color: #44403c;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+
+.landing-nav a:hover {
+  color: #0f766e; /* deep teal green highlight */
+}
+
+.landing-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.landing-btn-signin {
+  text-decoration: none;
+  color: #1c1917;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+}
+
+.landing-btn-signin:hover {
+  opacity: 0.8;
+}
+
+.landing-btn-download {
+  text-decoration: none;
+  background-color: #0f172a; /* bold dark color */
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: background-color 0.15s;
+}
+
+.landing-btn-download:hover {
+  background-color: #1e293b;
+}
+
+/* HERO CONTAINER */
+.landing-hero-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  align-items: center;
+  gap: 4rem;
+}
+
+.landing-hero-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.landing-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(28,25,23,0.05);
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #44403c;
+  margin-bottom: 1.5rem;
+}
+
+.landing-tag-icon {
+  font-size: 0.875rem;
+}
+
+.landing-title {
+  font-family: 'Plus Jakarta Sans', Georgia, serif;
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+  margin: 0 0 1.5rem 0;
+}
+
+.landing-title-highlight {
+  color: #0d9488; /* rich green highlights */
+  position: relative;
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.landing-subtitle {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #57534e;
+  max-width: 520px;
+  margin: 0 0 2.5rem 0;
+}
+
+.landing-btn-cta {
+  text-decoration: none;
+  background-color: #000000;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 1.125rem 2.25rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  transition: transform 0.2s, background-color 0.15s;
+  margin-bottom: 3rem;
+}
+
+.landing-btn-cta:hover {
+  transform: translateY(-2px);
+  background-color: #1a1a1a;
+}
+
+.landing-social-proof {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.landing-avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.landing-avatar-stack img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #fafaf9;
+  object-fit: cover;
+  margin-left: -12px;
+}
+
+.landing-avatar-stack img:first-child {
+  margin-left: 0;
+}
+
+.landing-social-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #57534e;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* HERO RIGHT (MOCK UI PANEL) */
+.landing-hero-right {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fae8ff; /* pink/purple background panel */
+  border-radius: 24px;
+  padding: 3.5rem 2.5rem;
+  position: relative;
+  min-height: 520px;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.3);
+}
+
+.landing-mock-phone {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 340px;
+  border-radius: 20px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: #1e293b;
+}
+
+/* User profile header inside phone */
+.phone-user-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.phone-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.phone-user-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-user-welcome {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.phone-user-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* Trip card inside phone */
+.phone-card-group {
+  background-color: #090d16; /* matching the dark black card in the image */
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.phone-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.phone-card-icon {
+  font-size: 1.1rem;
+}
+
+.phone-card-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+}
+
+.phone-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.phone-card-label {
+  display: block;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phone-card-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.phone-card-val-collect {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #ffffff;
+}
+
+.phone-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 0.75rem;
+}
+
+.phone-card-split-users {
+  display: flex;
+  align-items: center;
+}
+
+.phone-card-split-users img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #090d16;
+  object-fit: cover;
+  margin-left: -8px;
+}
+
+.phone-card-split-users img:first-child {
+  margin-left: 0;
+}
+
+.phone-btn-view {
+  border: none;
+  background-color: #14b8a6; /* view split green */
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* History rows */
+.phone-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.phone-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.phone-history-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #0f172a;
+}
+
+.phone-history-link {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.phone-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.phone-history-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+
+.phone-history-row:last-child {
+  border-bottom: none;
+}
+
+.history-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.icon-resort { background-color: #ccfbf1; }
+.icon-food { background-color: #fef9c3; }
+.icon-beach { background-color: #dbeafe; }
+
+.history-row-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.history-item-name {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #0f172a;
+}
+
+.history-item-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item-date {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-top: 0.125rem;
+}
+
+.history-item-price {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+
+/* FOOTER BANNER */
+.landing-footer-banner {
+  background-color: #fef08a; /* vibrant yellow bottom band */
+  padding: 2.25rem 2rem;
+  text-align: center;
+}
+
+.landing-footer-banner h2 {
+  font-family: 'Plus Jakarta Sans', Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1c1917;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+/* RESPONSIVE DESIGN FOR LANDING */
+@media (max-width: 991px) {
+  .landing-title {
+    font-size: 2.75rem;
+  }
+  .landing-hero-container {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    padding-top: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-header {
+    padding: 1.25rem 1.5rem;
+  }
+  .landing-nav {
+    display: none; /* hide standard links on mobile header */
+  }
+}
+
