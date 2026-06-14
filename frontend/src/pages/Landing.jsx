@@ -14,7 +14,7 @@ export default function Landing() {
     <div className="landing-page animate-fade-in">
       {/* --- HEADER --- */}
       <header className="landing-header">
-        <div className="landing-logo">ShareSplits</div>
+        <div className="landing-logo">SplitSmart</div>
         <nav className="landing-nav">
           <a href="#about">About Us</a>
           <a href="#features">Features</a>
@@ -45,11 +45,11 @@ export default function Landing() {
           <p className="landing-subtitle">
             Simplify group expenses effortlessly. Our user-friendly app makes bill splitting,
             expense tracking, and payments coordination seamless. Gain financial clarity
-            and peace of mind with ShareSplits
+            and peace of mind with SplitSmart
           </p>
 
           <Link to="/register" className="landing-btn-cta">
-            Open a ShareSplits Account
+            Open a SplitSmart Account
           </Link>
 
           <div className="landing-social-proof">

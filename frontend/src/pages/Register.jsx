@@ -50,12 +50,11 @@ export default function Register() {
         {/* Left Visual Branding Panel */}
         <div className="auth-left-brand">
           <div className="auth-brand-top">
-            <span className="auth-brand-logo">💸 ShareSplits</span>
+            <span className="auth-brand-logo">💸 SplitSmart</span>
             <Link to="/" className="auth-back-link">
               Back to website ➔
             </Link>
           </div>
-          
           <div className="auth-brand-bottom">
             <h1 className="auth-brand-title">Simplify Group Expenses, Settle Debts</h1>
             <p className="auth-brand-desc">

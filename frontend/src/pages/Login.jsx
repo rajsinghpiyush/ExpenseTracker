@@ -50,7 +50,7 @@ export default function Login() {
         {/* Left Visual Branding Panel */}
         <div className="auth-left-brand">
           <div className="auth-brand-top">
-            <span className="auth-brand-logo">💸 ShareSplits</span>
+            <span className="auth-brand-logo">💸 SplitSmart</span>
             <Link to="/" className="auth-back-link">
               Back to website ➔
             </Link>
