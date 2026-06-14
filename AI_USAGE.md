@@ -2,7 +2,7 @@
 
 ## Tool Used
 
-**Antigravity** (Google DeepMind) — powered by Claude Sonnet 4.6 (Thinking) model.
+Claude Sonnet 4.6 (Thinking) model.
 
 Used as a primary development collaborator throughout this project. The AI generated code drafts, which I reviewed, tested, and corrected before committing.
 
