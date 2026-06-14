@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────
+// Auth
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  avatarColor  String   @default("#6366f1")
+  isGuest      Boolean  @default(false) // for one-time external participants like Kabir
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  groupMemberships GroupMember[]
+  expensesPaid     Expense[]        @relation("ExpensePaidBy")
+  expenseShares    ExpenseShare[]
+  settlementsFrom  Settlement[]     @relation("SettlementPayer")
+  settlementsTo    Settlement[]     @relation("SettlementReceiver")
+  importBatches    ImportBatch[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// Groups
+// ─────────────────────────────────────────────
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  currency    String   @default("INR")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+  importBatches ImportBatch[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String    @id @default(uuid())
+  group    Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId  String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  joinedAt DateTime
+  leftAt   DateTime? // null = still active
+  role     String    @default("member") // "admin" | "member"
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+// ─────────────────────────────────────────────
+// Expenses
+// ─────────────────────────────────────────────
+
+model Expense {
+  id               String    @id @default(uuid())
+  group            Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId          String
+  description      String
+  // Amount always stored in group base currency (INR)
+  amount           Decimal   @db.Decimal(14, 2)
+  // Original values if foreign currency
+  originalAmount   Decimal?  @db.Decimal(14, 4)
+  originalCurrency String?
+  exchangeRate     Decimal?  @db.Decimal(10, 4)
+  currency         String    @default("INR")
+  paidBy           User      @relation("ExpensePaidBy", fields: [paidById], references: [id])
+  paidById         String
+  splitType        SplitType
+  date             DateTime
+  notes            String?
+  isDeleted        Boolean   @default(false)
+  deletedAt        DateTime?
+  // Link to import batch for traceability
+  importBatchId    String?
+  importBatch      ImportBatch? @relation(fields: [importBatchId], references: [id])
+  // Original row number in CSV for traceability
+  csvRowNumber     Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  shares ExpenseShare[]
+
+  @@map("expenses")
+}
+
+enum SplitType {
+  EQUAL
+  UNEQUAL
+  PERCENTAGE
+  SHARE
+}
+
+model ExpenseShare {
+  id         String   @id @default(uuid())
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expenseId  String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  // Computed share amount in group base currency
+  amount     Decimal  @db.Decimal(14, 2)
+  // Optional metadata depending on split type
+  percentage Decimal? @db.Decimal(7, 4) // for PERCENTAGE splits
+  shareUnit  Int?     // for SHARE splits (e.g., 2 = double share)
+
+  @@unique([expenseId, userId])
+  @@map("expense_shares")
+}
+
+// ─────────────────────────────────────────────
+// Settlements
+// ─────────────────────────────────────────────
+
+model Settlement {
+  id           String   @id @default(uuid())
+  group        Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String
+  payer        User     @relation("SettlementPayer", fields: [payerId], references: [id])
+  payerId      String
+  receiver     User     @relation("SettlementReceiver", fields: [receiverId], references: [id])
+  receiverId   String
+  amount       Decimal  @db.Decimal(14, 2)
+  currency     String   @default("INR")
+  date         DateTime
+  notes        String?
+  importBatchId String?
+  importBatch  ImportBatch? @relation(fields: [importBatchId], references: [id])
+  csvRowNumber Int?
+  createdAt    DateTime @default(now())
+
+  @@map("settlements")
+}
+
+// ─────────────────────────────────────────────
+// Import Pipeline
+// ─────────────────────────────────────────────
+
+model ImportBatch {
+  id           String   @id @default(uuid())
+  group        Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String
+  filename     String
+  importedBy   User     @relation(fields: [importedById], references: [id])
+  importedById String
+  // "pending_review" | "approved" | "partial" | "rejected"
+  status       String   @default("pending_review")
+  // Summary stats
+  totalRows       Int   @default(0)
+  importedExpenses Int  @default(0)
+  importedSettlements Int @default(0)
+  skippedRows     Int   @default(0)
+  anomalyCount    Int   @default(0)
+  importedAt   DateTime @default(now())
+
+  anomalies   ImportAnomaly[]
+  expenses    Expense[]
+  settlements Settlement[]
+
+  @@map("import_batches")
+}
+
+model ImportAnomaly {
+  id              String      @id @default(uuid())
+  batch           ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batchId         String
+  rowNumber       Int
+  rawData         Json        // original CSV row as object
+  // Anomaly classification
+  anomalyType     String      // DUPLICATE | MISSING_PAYER | SETTLEMENT | PERCENTAGE_ERROR | etc.
+  severity        String      // ERROR | WARNING | INFO
+  description     String
+  suggestedAction String
+  autoFixValue    String?     // the value the auto-fix would apply
+  // User decision (set during review step)
+  userDecision    String?     // ACCEPT | REJECT | OVERRIDE
+  overrideValue   String?     // custom value if user overrides
+  resolvedAt      DateTime?
+
+  @@map("import_anomalies")
+}
