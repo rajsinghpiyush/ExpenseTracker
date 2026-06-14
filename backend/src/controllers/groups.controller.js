@@ -127,27 +127,47 @@ exports.listMembers = async (req, res, next) => {
     next(err);
   }
 };
-
 exports.addMember = async (req, res, next) => {
   try {
     const { groupId } = req.params;
-    const { userId, joinedAt, role = 'member' } = req.body;
+    const { userId, email, name, joinedAt, role = 'member' } = req.body;
 
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    let targetUser;
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (userId) {
+      targetUser = await prisma.user.findUnique({ where: { id: userId } });
+      if (!targetUser) return res.status(404).json({ error: 'User not found' });
+    } else if (email) {
+      const normalizedEmail = email.trim().toLowerCase();
+      targetUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (!targetUser) {
+        const bcrypt = require('bcryptjs');
+        const defaultPassword = await bcrypt.hash('password123', 12);
+        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+        targetUser = await prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            name: name || email.split('@')[0],
+            passwordHash: defaultPassword,
+            avatarColor: randomColor,
+          },
+        });
+      }
+    } else {
+      return res.status(400).json({ error: 'Either userId or email is required' });
+    }
+
+    const targetUserId = targetUser.id;
 
     // Check if already a member
     const existing = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId, userId } },
+      where: { groupId_userId: { groupId, userId: targetUserId } },
     });
 
     let member;
     if (existing) {
-      // Re-activate if they left
       member = await prisma.groupMember.update({
-        where: { groupId_userId: { groupId, userId } },
+        where: { groupId_userId: { groupId, userId: targetUserId } },
         data: { leftAt: null, joinedAt: joinedAt ? new Date(joinedAt) : new Date(), role },
         include: { user: { select: USER_SELECT } },
       });
@@ -155,7 +175,7 @@ exports.addMember = async (req, res, next) => {
       member = await prisma.groupMember.create({
         data: {
           groupId,
-          userId,
+          userId: targetUserId,
           joinedAt: joinedAt ? new Date(joinedAt) : new Date(),
           role,
         },
@@ -168,7 +188,6 @@ exports.addMember = async (req, res, next) => {
     next(err);
   }
 };
-
 exports.updateMember = async (req, res, next) => {
   try {
     const { groupId, userId } = req.params;

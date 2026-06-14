@@ -35,6 +35,36 @@ export default function GroupDetail() {
   const [activeTab, setActiveTab] = useState('expenses');
   const [expandedExpense, setExpandedExpense] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberJoinDate, setNewMemberJoinDate] = useState(new Date().toISOString().split('T')[0]);
+  const [addingMember, setAddingMember] = useState(false);
+
+  const handleAddMember = async (e) => {
+    e.preventDefault();
+    if (!newMemberEmail.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    setAddingMember(true);
+    try {
+      await api.post(`/groups/${groupId}/members`, {
+        email: newMemberEmail.trim().toLowerCase(),
+        name: newMemberName.trim() || undefined,
+        joinedAt: newMemberJoinDate,
+      });
+      toast.success('Member added successfully');
+      setNewMemberEmail('');
+      setNewMemberName('');
+      loadAll();
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || 'Failed to add member';
+      toast.error(errorMsg);
+    } finally {
+      setAddingMember(false);
+    }
+  };
 
   useEffect(() => {
     loadAll();
@@ -301,39 +331,105 @@ export default function GroupDetail() {
 
           {/* Members Tab */}
           {activeTab === 'members' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
-              {(group.members || []).map((m) => (
-                <div key={m.userId} className="card flex items-center gap-3">
-                  <MemberAvatar name={m.user.name} color={m.user.avatarColor} size="md" />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{m.user.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Joined {format(new Date(m.joinedAt), 'dd MMM yyyy')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Add Member Form Card */}
+              {group.members.find((m) => m.userId === user?.id)?.role === 'admin' && (
+                <div className="card" style={{ padding: '1.25rem', background: 'var(--bg-elevated)' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Users size={16} style={{ color: 'var(--primary)' }} /> Add a New Group Member
+                  </h3>
+                  <form onSubmit={handleAddMember} className="flex gap-3 items-end" style={{ flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <label htmlFor="new-member-email" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        id="new-member-email"
+                        value={newMemberEmail}
+                        onChange={(e) => setNewMemberEmail(e.target.value)}
+                        placeholder="flatmate@example.com"
+                        className="form-control"
+                        required
+                        style={{ background: 'var(--bg-card)' }}
+                      />
                     </div>
-                    {m.leftAt && (
-                      <div className="badge badge-muted" style={{ marginTop: '0.25rem', fontSize: '0.7rem' }}>
-                        Left {format(new Date(m.leftAt), 'dd MMM yy')}
+                    <div style={{ flex: '1 1 200px' }}>
+                      <label htmlFor="new-member-name" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Name (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        id="new-member-name"
+                        value={newMemberName}
+                        onChange={(e) => setNewMemberName(e.target.value)}
+                        placeholder="John Doe"
+                        className="form-control"
+                        style={{ background: 'var(--bg-card)' }}
+                      />
+                    </div>
+                    <div style={{ flex: '1 1 150px' }}>
+                      <label htmlFor="new-member-joindate" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Join Date
+                      </label>
+                      <input
+                        type="date"
+                        id="new-member-joindate"
+                        value={newMemberJoinDate}
+                        onChange={(e) => setNewMemberJoinDate(e.target.value)}
+                        className="form-control"
+                        required
+                        style={{ background: 'var(--bg-card)' }}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={addingMember}
+                      style={{ height: '42px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      <Plus size={16} />
+                      {addingMember ? 'Adding...' : 'Add Member'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Members Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                {(group.members || []).map((m) => (
+                  <div key={m.userId} className="card flex items-center gap-3">
+                    <MemberAvatar name={m.user.name} color={m.user.avatarColor} size="md" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{m.user.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Joined {format(new Date(m.joinedAt), 'dd MMM yyyy')}
                       </div>
-                    )}
-                    {m.role === 'admin' && (
-                      <div className="badge badge-primary" style={{ marginTop: '0.25rem', fontSize: '0.7rem' }}>Admin</div>
+                      {m.leftAt && (
+                        <div className="badge badge-muted" style={{ marginTop: '0.25rem', fontSize: '0.7rem' }}>
+                          Left {format(new Date(m.leftAt), 'dd MMM yy')}
+                        </div>
+                      )}
+                      {m.role === 'admin' && (
+                        <div className="badge badge-primary" style={{ marginTop: '0.25rem', fontSize: '0.7rem' }}>Admin</div>
+                      )}
+                    </div>
+                    {/* Net balance for this member */}
+                    {balances?.netBalances?.[m.userId] !== undefined && (
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          color: balances.netBalances[m.userId] >= 0 ? 'var(--success)' : 'var(--danger)',
+                        }}>
+                          {balances.netBalances[m.userId] >= 0 ? '+' : ''}
+                          {fmt(balances.netBalances[m.userId])}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  {/* Net balance for this member */}
-                  {balances?.netBalances?.[m.userId] !== undefined && (
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        color: balances.netBalances[m.userId] >= 0 ? 'var(--success)' : 'var(--danger)',
-                      }}>
-                        {balances.netBalances[m.userId] >= 0 ? '+' : ''}
-                        {fmt(balances.netBalances[m.userId])}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 

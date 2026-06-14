@@ -105,152 +105,263 @@ function computeShares(splitType, totalAmount, sharesInput) {
 }
 
 // ─────────────────────────────────────────────
-// Balance Computation
+// Balance Calculator Class
 // ─────────────────────────────────────────────
 
-/**
- * Compute the full balance matrix for a group.
- *
- * Returns:
- *  - netBalances: { userId -> netAmount }  (positive = owed money, negative = owes money)
- *  - paidByUser: { userId -> total paid }
- *  - owedByUser: { userId -> total owed across shares }
- *  - minSettlements: list of { from, to, amount } to clear all debts with minimum transactions
- *  - contributingExpenses: { userId -> array of expense summaries affecting their balance }
- */
-async function computeGroupBalances(groupId) {
-  // Fetch all non-deleted expenses with shares
-  const expenses = await prisma.expense.findMany({
-    where: { groupId, isDeleted: false },
-    include: {
-      paidBy: { select: { id: true, name: true, avatarColor: true } },
-      shares: {
-        include: { user: { select: { id: true, name: true, avatarColor: true } } },
-      },
-    },
-    orderBy: { date: 'asc' },
-  });
+class BalanceCalculator {
+  constructor(groupId) {
+    this.groupId = groupId;
+    this.expenses = [];
+    this.settlements = [];
+    this.members = [];
+    this.netBalances = {};
+    this.paidByUser = {};
+    this.owedByUser = {};
+    this.settlementEffects = {};
+    this.contributingExpenses = {};
+    this.users = {};
+  }
 
-  // Fetch all settlements
-  const settlements = await prisma.settlement.findMany({
-    where: { groupId },
-    include: {
-      payer: { select: { id: true, name: true, avatarColor: true } },
-      receiver: { select: { id: true, name: true, avatarColor: true } },
-    },
-  });
-
-  // All unique user IDs involved
-  const userMap = new Map();
-
-  const paidByUser = {}; // userId -> total amount paid
-  const owedByUser = {}; // userId -> total share amount owed
-
-  // Track per-user contributing expenses for drill-down (Rohan's requirement)
-  const contributingExpenses = {};
-
-  for (const expense of expenses) {
-    const payerId = expense.paidById;
-    const amount = Number(expense.amount);
-
-    if (!userMap.has(payerId)) {
-      userMap.set(payerId, expense.paidBy);
+  async init() {
+    this.members = await prisma.groupMember.findMany({
+      where: { groupId: this.groupId },
+      include: { user: true },
+    });
+    this.users = {};
+    for (const m of this.members) {
+      this.users[m.user.id] = m.user;
     }
 
-    paidByUser[payerId] = (paidByUser[payerId] || 0) + amount;
+    this.expenses = await prisma.expense.findMany({
+      where: { groupId: this.groupId, isDeleted: false },
+      include: {
+        paidBy: { select: { id: true, name: true, avatarColor: true } },
+        shares: {
+          include: { user: { select: { id: true, name: true, avatarColor: true } } },
+        },
+      },
+      orderBy: { date: 'asc' },
+    });
 
-    for (const share of expense.shares) {
-      const uid = share.userId;
-      const shareAmt = Number(share.amount);
+    this.settlements = await prisma.settlement.findMany({
+      where: { groupId: this.groupId },
+      include: {
+        payer: { select: { id: true, name: true, avatarColor: true } },
+        receiver: { select: { id: true, name: true, avatarColor: true } },
+      },
+    });
+  }
 
-      if (!userMap.has(uid)) {
-        userMap.set(uid, share.user);
+  calculate_net_balances(as_of_date = null, member_id = null) {
+    const paidByUser = {};
+    const owedByUser = {};
+    const settlementEffects = {};
+    const contributingExpenses = {};
+
+    const cutoffDate = as_of_date ? new Date(as_of_date) : null;
+
+    // Filter expenses by cutoffDate
+    const filteredExpenses = cutoffDate
+      ? this.expenses.filter((e) => new Date(e.date) <= cutoffDate)
+      : this.expenses;
+
+    const filteredSettlements = cutoffDate
+      ? this.settlements.filter((s) => new Date(s.date) <= cutoffDate)
+      : this.settlements;
+
+    for (const expense of filteredExpenses) {
+      const payerId = expense.paidById;
+      const amount = Number(expense.amount);
+      const expenseDate = new Date(expense.date);
+
+      // Check if it is a recurring monthly bill
+      const isRecurring = /rent|electricity|maintenance|monthly|internet|cleaning/i.test(expense.description || '');
+
+      paidByUser[payerId] = (paidByUser[payerId] || 0) + amount;
+
+      // Handle pro-rata calculation if recurring and membership dates change
+      let shares = expense.shares.map((s) => ({
+        userId: s.userId,
+        amount: Number(s.amount),
+        percentage: s.percentage ? Number(s.percentage) : null,
+        shareUnit: s.shareUnit || null,
+        user: s.user,
+      }));
+
+      if (isRecurring) {
+        // Get start and end of that month
+        const year = expenseDate.getFullYear();
+        const month = expenseDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const monthStart = new Date(year, month, 1);
+        const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
+
+        // Compute pro-rata weights for each split member
+        const weights = {};
+        let totalWeight = 0;
+
+        for (const share of shares) {
+          const m = this.members.find((mb) => mb.userId === share.userId);
+          if (m) {
+            // Find overlap between [joinedAt, leftAt] and [monthStart, monthEnd]
+            const join = new Date(m.joinedAt);
+            const left = m.leftAt ? new Date(m.leftAt) : null;
+
+            const overlapStart = new Date(Math.max(monthStart.getTime(), join.getTime()));
+            const overlapEnd = left
+              ? new Date(Math.min(monthEnd.getTime(), left.getTime()))
+              : monthEnd;
+
+            if (overlapStart <= overlapEnd) {
+              const activeMs = overlapEnd.getTime() - overlapStart.getTime();
+              const activeDays = Math.ceil(activeMs / (1000 * 60 * 60 * 24)) + 1;
+              weights[share.userId] = activeDays / daysInMonth;
+            } else {
+              weights[share.userId] = 0;
+            }
+          } else {
+            weights[share.userId] = 1;
+          }
+          totalWeight += weights[share.userId];
+        }
+
+        // Adjust shares based on weights
+        if (totalWeight > 0) {
+          shares = shares.map((share) => {
+            const adjustedShare = (weights[share.userId] / totalWeight) * amount;
+            return {
+              ...share,
+              amount: roundHalfUp(adjustedShare, 2),
+            };
+          });
+
+          // Redistribute rounding remainders
+          const sumAdjusted = shares.reduce((sum, s) => sum + s.amount, 0);
+          const remainder = roundHalfUp(amount - sumAdjusted, 2);
+          if (remainder !== 0 && shares.length > 0) {
+            shares[0].amount = roundHalfUp(shares[0].amount + remainder, 2);
+          }
+        }
       }
 
-      owedByUser[uid] = (owedByUser[uid] || 0) + shareAmt;
+      for (const share of shares) {
+        const uid = share.userId;
+        const shareAmt = share.amount;
 
-      // Store contributing expense for this user
-      if (!contributingExpenses[uid]) contributingExpenses[uid] = [];
-      contributingExpenses[uid].push({
-        expenseId: expense.id,
-        description: expense.description,
-        date: expense.date,
-        amount: expense.amount,
-        shareAmount: share.amount,
-        paidBy: expense.paidBy,
-        splitType: expense.splitType,
-      });
+        owedByUser[uid] = (owedByUser[uid] || 0) + shareAmt;
+
+        if (!contributingExpenses[uid]) contributingExpenses[uid] = [];
+        contributingExpenses[uid].push({
+          expenseId: expense.id,
+          description: expense.description,
+          date: expense.date,
+          amount: expense.amount,
+          shareAmount: shareAmt,
+          paidBy: expense.paidBy || { name: payerId },
+          splitType: expense.splitType,
+        });
+      }
     }
+
+    for (const s of filteredSettlements) {
+      const amt = Number(s.amount);
+      const payerId = s.payerId;
+      const receiverId = s.receiverId;
+
+      settlementEffects[payerId] = (settlementEffects[payerId] || 0) + amt;
+      settlementEffects[receiverId] = (settlementEffects[receiverId] || 0) - amt;
+    }
+
+    const netBalances = {};
+    const allUserIds = new Set([
+      ...Object.keys(paidByUser),
+      ...Object.keys(owedByUser),
+      ...Object.keys(settlementEffects),
+      ...this.members.map((m) => m.userId),
+    ]);
+
+    for (const uid of allUserIds) {
+      const paid = paidByUser[uid] || 0;
+      const owed = owedByUser[uid] || 0;
+      const settlement = settlementEffects[uid] || 0;
+      netBalances[uid] = roundHalfUp(paid - owed + settlement, 2);
+    }
+
+    this.paidByUser = paidByUser;
+    this.owedByUser = owedByUser;
+    this.settlementEffects = settlementEffects;
+    this.contributingExpenses = contributingExpenses;
+    this.netBalances = netBalances;
+
+    if (member_id) {
+      return netBalances[member_id] || 0;
+    }
+    return netBalances;
   }
 
-  // Settlements adjust net balances
-  const settlementEffects = {}; // userId -> net adjustment from settlements
+  get_balance_breakdown(user_id) {
+    const contributing = this.contributingExpenses[user_id] || [];
+    let runningTotal = 0;
 
-  for (const s of settlements) {
-    const amt = Number(s.amount);
-    const payerId = s.payerId;
-    const receiverId = s.receiverId;
+    return contributing.map((e) => {
+      const isPayer = e.paidBy.id === user_id;
+      const shareOwed = e.shareAmount;
+      const netEffect = (isPayer ? e.amount : 0) - shareOwed;
+      runningTotal = roundHalfUp(runningTotal + netEffect, 2);
 
-    if (!userMap.has(payerId)) userMap.set(payerId, s.payer);
-    if (!userMap.has(receiverId)) userMap.set(receiverId, s.receiver);
-
-    // Payer sends money → their outstanding debt decreases (positive adjustment)
-    settlementEffects[payerId] = (settlementEffects[payerId] || 0) + amt;
-    // Receiver gets money → their outstanding credit decreases (negative adjustment)
-    settlementEffects[receiverId] = (settlementEffects[receiverId] || 0) - amt;
+      return {
+        expenseId: e.expenseId,
+        description: e.description,
+        date: e.date,
+        totalAmount: e.amount,
+        shareOwed,
+        isPayer,
+        netEffect,
+        runningTotal,
+      };
+    });
   }
 
-  // Compute net balances:
-  // net = paid - owed + settlement_effects
-  // positive = others owe this person
-  // negative = this person owes others
-  const allUserIds = new Set([
-    ...Object.keys(paidByUser),
-    ...Object.keys(owedByUser),
-    ...Object.keys(settlementEffects),
-  ]);
-
-  const netBalances = {};
-  for (const uid of allUserIds) {
-    const paid = paidByUser[uid] || 0;
-    const owed = owedByUser[uid] || 0;
-    const settlement = settlementEffects[uid] || 0;
-    netBalances[uid] = roundHalfUp(paid - owed + settlement, 2);
+  simplify_debts() {
+    const userMap = new Map();
+    for (const m of this.members) {
+      userMap.set(m.userId, m.user);
+    }
+    return computeMinimumSettlements(this.netBalances, userMap);
   }
 
-  // Minimum settlement transactions
-  const minSettlements = computeMinimumSettlements(netBalances, userMap);
+  get_settlement_plan() {
+    return this.simplify_debts();
+  }
+}
+
+async function computeGroupBalances(groupId) {
+  const calc = new BalanceCalculator(groupId);
+  await calc.init();
+  const netBalances = calc.calculate_net_balances();
+  const minSettlements = calc.simplify_debts();
 
   return {
     netBalances,
-    paidByUser,
-    owedByUser,
-    settlementEffects,
+    paidByUser: calc.paidByUser,
+    owedByUser: calc.owedByUser,
+    settlementEffects: calc.settlementEffects,
     minSettlements,
-    contributingExpenses,
-    users: Object.fromEntries(userMap),
-    expenseCount: expenses.length,
-    settlementCount: settlements.length,
+    contributingExpenses: calc.contributingExpenses,
+    users: calc.users,
+    expenseCount: calc.expenses.length,
+    settlementCount: calc.settlements.length,
   };
 }
 
 /**
  * Greedy minimum-transaction debt settlement algorithm.
- *
- * Given a map of { userId -> netBalance }, produces the minimum set of
- * transactions to clear all debts.
- *
- * Algorithm:
- * 1. Separate into creditors (positive balance) and debtors (negative balance)
- * 2. Repeatedly pair the largest creditor with the largest debtor
- * 3. Transfer min(|creditor|, |debtor|) to clear one side
  */
 function computeMinimumSettlements(netBalances, userMap) {
   const transactions = [];
 
-  // Build mutable arrays
-  const creditors = []; // { userId, amount (positive) }
-  const debtors = [];   // { userId, amount (negative, stored as positive) }
+  const creditors = [];
+  const debtors = [];
 
   for (const [userId, balance] of Object.entries(netBalances)) {
     if (balance > 0.01) {
@@ -260,7 +371,6 @@ function computeMinimumSettlements(netBalances, userMap) {
     }
   }
 
-  // Sort descending
   creditors.sort((a, b) => b.amount - a.amount);
   debtors.sort((a, b) => b.amount - a.amount);
 
@@ -282,7 +392,6 @@ function computeMinimumSettlements(netBalances, userMap) {
     if (creditor.amount < 0.01) creditors.shift();
     if (debtor.amount < 0.01) debtors.shift();
 
-    // Re-sort after modification
     creditors.sort((a, b) => b.amount - a.amount);
     debtors.sort((a, b) => b.amount - a.amount);
   }
@@ -290,12 +399,8 @@ function computeMinimumSettlements(netBalances, userMap) {
   return transactions;
 }
 
-// ─────────────────────────────────────────────
-// Utilities
-// ─────────────────────────────────────────────
-
 /**
- * Round to N decimal places using "round half up" (standard financial rounding)
+ * Round to N decimal places using "round half up"
  */
 function roundHalfUp(num, decimals = 2) {
   const factor = Math.pow(10, decimals);
@@ -307,4 +412,5 @@ module.exports = {
   computeGroupBalances,
   computeMinimumSettlements,
   roundHalfUp,
+  BalanceCalculator,
 };
