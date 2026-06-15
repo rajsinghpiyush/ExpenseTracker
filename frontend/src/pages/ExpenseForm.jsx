@@ -19,6 +19,7 @@ export default function ExpenseForm() {
   const isEdit = Boolean(expenseId);
 
   const [members, setMembers] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,9 +43,14 @@ export default function ExpenseForm() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const membersRes = await api.get(`/groups/${groupId}/members`);
+      const [membersRes, groupsRes] = await Promise.all([
+        api.get(`/groups/${groupId}/members`),
+        api.get('/groups')
+      ]);
+
       const activeMembers = membersRes.data.members.filter((m) => !m.leftAt);
       setMembers(activeMembers);
+      setGroups(groupsRes.data.groups);
 
       // Default: all active members selected for split
       const defaultSplit = activeMembers.map((m) => ({
@@ -206,43 +212,43 @@ export default function ExpenseForm() {
 
   if (loading) {
     return (
-      <div className="app-layout">
+      <div className="app-layout corporate-dashboard-body">
         <Sidebar groups={[]} />
-        <main className="main-content">
-          <div className="loading-overlay"><div className="spinner spinner-lg" /></div>
+        <main className="main-content" style={{ marginLeft: '240px', width: 'calc(100% - 240px)' }}>
+          <div className="loading-overlay"><div className="spinner spinner-lg" style={{ borderTopColor: '#10b981' }} /></div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="app-layout">
-      <Sidebar groups={[]} />
-      <main className="main-content">
+    <div className="app-layout corporate-dashboard-body">
+      <Sidebar groups={groups} />
+      <main className="main-content" style={{ padding: '2rem 2.5rem', marginLeft: '240px', width: 'calc(100% - 240px)' }}>
         <div className="content-container animate-fade-in" style={{ maxWidth: 640 }}>
 
-          <Link to={`/groups/${groupId}`} className="btn btn-ghost btn-sm" style={{ marginBottom: '1.25rem', width: 'fit-content' }}>
+          <Link to={`/groups/${groupId}`} className="corporate-view-all" style={{ marginBottom: '1.25rem', width: 'fit-content', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: '0' }}>
             <ArrowLeft size={16} /> Back to Group
           </Link>
 
-          <h1 className="page-title" style={{ marginBottom: '0.25rem' }}>
+          <h1 className="corporate-title" style={{ marginTop: '1rem', marginBottom: '0.25rem' }}>
             {isEdit ? '✏️ Edit Expense' : '➕ Add Expense'}
           </h1>
-          <p className="page-subtitle" style={{ marginBottom: '2rem' }}>
+          <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '2rem' }}>
             {isEdit ? 'Update the expense details below.' : 'Fill in the details and choose how to split.'}
           </p>
 
           <form onSubmit={handleSubmit}>
             {/* ── Basic Info ── */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
-              <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Expense Details</h3>
+            <div className="card corporate-card" style={{ marginBottom: '1rem' }}>
+              <h3 className="corporate-card-title">Expense Details</h3>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="exp-description">Description *</label>
+                <label className="form-label" htmlFor="exp-description" style={{ color: '#4b5563', fontSize: '0.75rem', fontWeight: 600 }}>Description *</label>
                 <input
                   id="exp-description"
                   type="text"
-                  className="form-input"
+                  className="corporate-form-input"
                   placeholder="e.g. Groceries BigBasket"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -253,13 +259,13 @@ export default function ExpenseForm() {
 
               <div className="grid col-2" style={{ gap: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="exp-amount">Amount *</label>
+                  <label className="form-label" htmlFor="exp-amount" style={{ color: '#4b5563', fontSize: '0.75rem', fontWeight: 600 }}>Amount *</label>
                   <input
                     id="exp-amount"
                     type="number"
                     step="0.01"
                     min="0.01"
-                    className="form-input"
+                    className="corporate-form-input"
                     placeholder="0.00"
                     value={form.amount}
                     onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
@@ -267,10 +273,10 @@ export default function ExpenseForm() {
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="exp-currency">Currency</label>
+                  <label className="form-label" htmlFor="exp-currency" style={{ color: '#4b5563', fontSize: '0.75rem', fontWeight: 600 }}>Currency</label>
                   <select
                     id="exp-currency"
-                    className="form-select"
+                    className="corporate-form-select"
                     value={form.currency}
                     onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
                   >
@@ -283,21 +289,21 @@ export default function ExpenseForm() {
 
               <div className="grid col-2" style={{ gap: '1rem', marginTop: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="exp-date">Date *</label>
+                  <label className="form-label" htmlFor="exp-date" style={{ color: '#4b5563', fontSize: '0.75rem', fontWeight: 600 }}>Date *</label>
                   <input
                     id="exp-date"
                     type="date"
-                    className="form-input"
+                    className="corporate-form-input"
                     value={form.date}
                     onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label" htmlFor="exp-paidby">Paid by *</label>
+                  <label className="form-label" htmlFor="exp-paidby" style={{ color: '#4b5563', fontSize: '0.75rem', fontWeight: 600 }}>Paid by *</label>
                   <select
                     id="exp-paidby"
-                    className="form-select"
+                    className="corporate-form-select"
                     value={form.paidById}
                     onChange={(e) => setForm((f) => ({ ...f, paidById: e.target.value }))}
                     required
@@ -311,11 +317,11 @@ export default function ExpenseForm() {
               </div>
 
               <div className="form-group" style={{ marginTop: '1rem', marginBottom: 0 }}>
-                <label className="form-label" htmlFor="exp-notes">Notes (optional)</label>
+                <label className="form-label" htmlFor="exp-notes" style={{ color: '#4b5563', fontSize: '0.75rem', fontWeight: 600 }}>Notes (optional)</label>
                 <input
                   id="exp-notes"
                   type="text"
-                  className="form-input"
+                  className="corporate-form-input"
                   placeholder="Any notes about this expense"
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -324,118 +330,131 @@ export default function ExpenseForm() {
             </div>
 
             {/* ── Split Type ── */}
-            <div className="card" style={{ marginBottom: '1rem' }}>
-              <h3 style={{ marginBottom: '0.875rem', fontSize: '1rem' }}>How to Split</h3>
+            <div className="card corporate-card" style={{ marginBottom: '1rem' }}>
+              <h3 className="corporate-card-title">How to Split</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
-                {SPLIT_TYPES.map((st) => (
-                  <button
-                    key={st.value}
-                    type="button"
-                    id={`split-type-${st.value.toLowerCase()}`}
-                    onClick={() => setForm((f) => ({ ...f, splitType: st.value }))}
-                    style={{
-                      padding: '0.75rem',
-                      borderRadius: 'var(--radius-md)',
-                      border: `2px solid ${form.splitType === st.value ? 'var(--primary)' : 'var(--border)'}`,
-                      background: form.splitType === st.value ? 'var(--primary-dim)' : 'var(--bg-elevated)',
-                      textAlign: 'left',
-                      transition: 'all 0.15s',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: form.splitType === st.value ? 'var(--primary-light)' : 'var(--text-primary)' }}>
-                      {st.label}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
-                      {st.desc}
-                    </div>
-                  </button>
-                ))}
+                {SPLIT_TYPES.map((st) => {
+                  const isActive = form.splitType === st.value;
+                  return (
+                    <button
+                      key={st.value}
+                      type="button"
+                      id={`split-type-${st.value.toLowerCase()}`}
+                      onClick={() => setForm((f) => ({ ...f, splitType: st.value }))}
+                      style={{
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        border: isActive ? '2px solid #10b981' : '1px solid #d1d5db',
+                        background: isActive ? 'rgba(16, 185, 129, 0.05)' : '#ffffff',
+                        textAlign: 'left',
+                        transition: 'all 0.15s',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: isActive ? '#10b981' : '#1f2937' }}>
+                        {st.label}
+                      </div>
+                      <div style={{ fontSize: '0.725rem', color: '#6b7280', marginTop: '0.125rem' }}>
+                        {st.desc}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* ── Split With Members ── */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>Split among</label>
+                <label className="form-label" style={{ marginBottom: 0, color: '#4b5563', fontSize: '0.75rem', fontWeight: 600 }}>Split among</label>
                 {form.splitType !== 'EQUAL' && (
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={autoFillEqual}>
+                  <button
+                    type="button"
+                    className="corporate-add-btn"
+                    onClick={autoFillEqual}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem' }}
+                  >
                     Auto-fill equal
                   </button>
                 )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {splitWith.map((m) => (
-                  <div
-                    key={m.userId}
-                    className="flex items-center gap-3"
-                    style={{
-                      padding: '0.625rem 0.75rem',
-                      borderRadius: 'var(--radius-md)',
-                      border: `1px solid ${m.selected ? 'var(--primary)' : 'var(--border)'}`,
-                      background: m.selected ? 'var(--primary-dim)' : 'var(--bg-elevated)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
-                    onClick={() => form.splitType !== 'EQUAL' ? toggleMember(m.userId) : null}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={m.selected}
-                      onChange={() => toggleMember(m.userId)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ width: 16, height: 16, accentColor: 'var(--primary)', flexShrink: 0 }}
-                      id={`split-member-${m.userId}`}
-                    />
-                    <MemberAvatar name={m.name} color={m.avatarColor} size="xs" />
-                    <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 500 }}>{m.name}</span>
-
-                    {/* Value input for non-EQUAL splits */}
-                    {m.selected && form.splitType !== 'EQUAL' && (
+                {splitWith.map((m) => {
+                  const isChecked = m.selected;
+                  return (
+                    <div
+                      key={m.userId}
+                      className="flex items-center gap-3"
+                      style={{
+                        padding: '0.625rem 0.75rem',
+                        borderRadius: '8px',
+                        border: isChecked ? '1px solid #10b981' : '1px solid #e5e7eb',
+                        background: isChecked ? 'rgba(16, 185, 129, 0.03)' : '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                      }}
+                      onClick={() => form.splitType !== 'EQUAL' ? toggleMember(m.userId) : null}
+                    >
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="form-input"
-                        style={{ width: 90, textAlign: 'right', padding: '0.375rem 0.5rem' }}
-                        placeholder={
-                          form.splitType === 'PERCENTAGE' ? '0%'
-                          : form.splitType === 'SHARE' ? 'units'
-                          : '₹0'
-                        }
-                        value={m.value}
-                        onChange={(e) => { e.stopPropagation(); updateValue(m.userId, e.target.value); }}
+                        type="checkbox"
+                        checked={m.selected}
+                        onChange={() => toggleMember(m.userId)}
                         onClick={(e) => e.stopPropagation()}
-                        id={`split-value-${m.userId}`}
+                        style={{ width: 16, height: 16, accentColor: '#10b981', flexShrink: 0 }}
+                        id={`split-member-${m.userId}`}
                       />
-                    )}
+                      <MemberAvatar name={m.name} color={m.avatarColor} size="xs" />
+                      <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 600, color: '#1f2937' }}>{m.name}</span>
 
-                    {/* For EQUAL, show computed amount */}
-                    {form.splitType === 'EQUAL' && form.amount && m.selected && (
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                        ≈ ₹{(parseFloat(form.amount) / selectedSplit.length).toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                      {/* Value input for non-EQUAL splits */}
+                      {m.selected && form.splitType !== 'EQUAL' && (
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="corporate-form-input"
+                          style={{ width: 90, textAlign: 'right', padding: '0.375rem 0.5rem' }}
+                          placeholder={
+                            form.splitType === 'PERCENTAGE' ? '0%'
+                            : form.splitType === 'SHARE' ? 'units'
+                            : '₹0'
+                          }
+                          value={m.value}
+                          onChange={(e) => { e.stopPropagation(); updateValue(m.userId, e.target.value); }}
+                          onClick={(e) => e.stopPropagation()}
+                          id={`split-value-${m.userId}`}
+                        />
+                      )}
+
+                      {/* For EQUAL, show computed amount */}
+                      {form.splitType === 'EQUAL' && form.amount && m.selected && (
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', flexShrink: 0, fontWeight: 500 }}>
+                          ≈ ₹{(parseFloat(form.amount) / selectedSplit.length).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Running total validation */}
               {(form.splitType === 'PERCENTAGE' || form.splitType === 'UNEQUAL') && total !== null && (
                 <div style={{ marginTop: '0.75rem' }}>
                   <div className="flex justify-between" style={{ fontSize: '0.875rem' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>
+                    <span style={{ color: '#6b7280', fontWeight: 500 }}>
                       {form.splitType === 'PERCENTAGE' ? 'Total %' : 'Total amount'}
                     </span>
-                    <span style={{ fontWeight: 600, color: (pctOff < 0.1 && amtOff < 0.02) ? 'var(--success)' : 'var(--danger)' }}>
+                    <span style={{ fontWeight: 700, color: (pctOff < 0.1 && amtOff < 0.02) ? '#10b981' : '#ef4444' }}>
                       {form.splitType === 'PERCENTAGE' ? `${total.toFixed(1)}% / 100%` : `₹${total.toFixed(2)} / ₹${parseFloat(form.amount || 0).toFixed(2)}`}
                     </span>
                   </div>
-                  <div className="progress-bar" style={{ marginTop: '0.375rem' }}>
+                  <div className="progress-bar" style={{ marginTop: '0.375rem', background: '#e5e7eb', height: '6px' }}>
                     <div
                       className="progress-fill"
                       style={{
                         width: `${Math.min(form.splitType === 'PERCENTAGE' ? total : (total / parseFloat(form.amount || 1)) * 100, 100)}%`,
-                        background: (pctOff < 0.1 && amtOff < 0.02) ? 'var(--success)' : 'var(--danger)',
+                        background: (pctOff < 0.1 && amtOff < 0.02) ? '#10b981' : '#ef4444',
+                        height: '100%',
+                        borderRadius: '9999px'
                       }}
                     />
                   </div>
@@ -445,12 +464,20 @@ export default function ExpenseForm() {
 
             {/* ── Submit ── */}
             <div className="flex gap-3 justify-end">
-              <Link to={`/groups/${groupId}`} className="btn btn-ghost">Cancel</Link>
+              <Link to={`/groups/${groupId}`} className="corporate-add-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>Cancel</Link>
               <button
                 id="submit-expense-btn"
                 type="submit"
-                className="btn btn-primary btn-lg"
+                className="btn btn-primary"
                 disabled={submitting}
+                style={{
+                  background: '#10b981',
+                  borderColor: '#10b981',
+                  color: 'white',
+                  fontWeight: 700,
+                  borderRadius: '9999px',
+                  padding: '0.5rem 1.75rem'
+                }}
               >
                 {submitting ? 'Saving…' : isEdit ? '✓ Update Expense' : '✓ Add Expense'}
               </button>
